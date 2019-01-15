@@ -3,23 +3,98 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const devMode = process.env.NODE_ENV !== 'production'
+const WorkboxPlugin = require('workbox-webpack-plugin');
 const webpack = require('webpack');
+
+// if (process.env.NODE_ENV === 'production') 
+
 module.exports = {
     entry: {
         'index': './src/scripts/main.mjs',
         'app':'./src/scripts/app.mjs'
     },
-    devtool: 'inline-source-map',
+    
     devServer: {
         contentBase: './dist',
+        publicPath:'/',
+        inline: true,
         // compress: true,
         port: 9000,
         hot: true
     },
+    // devtool: 'source-map',
     module: {
-        noParse: /jquery|lodash/,
-        rules: [           
+        
+        rules: [     
+          {
+            test: /\.(css|s[ac]ss)$/,
+            use: [
+              {
+                loader: MiniCssExtractPlugin.loader
+              },
+              {
+                loader: 'css-loader',
+                options: {
+                  importLoaders: 2,
+                  sourceMap: true
+                }
+              },      
+              {
+                loader: 'postcss-loader',
+                options: {
+                  plugins: () => [
+                    require('autoprefixer'),
+                    require('cssnano')({
+                        preset: 'default',
+                    })
+                  ],
+                  sourceMap: true
+                }
+              },
+              {
+                loader: 'sass-loader',
+                options: {
+                  sourceMap: true
+                }
+              }
+            ]
+          },      
+          // {
+          //   test: /\.(scss)$/,
+          //   use: [
+          //     {
+          //       // Adds CSS to the DOM by injecting a `<style>` tag
+          //       loader: 'style-loader'
+          //     },
+          //     {
+          //       loader: MiniCssExtractPlugin.loader,
+          //       options: {
+          //         // you can specify a publicPath here
+          //         // by default it use publicPath in webpackOptions.output
+          //         publicPath: '../'
+          //       }
+          //     },
+          //     {
+          //       // Interprets `@import` and `url()` like `import/require()` and will resolve them
+          //       loader: 'css-loader'
+          //     },
+          //     {
+          //       // Loader for webpack to process CSS with PostCSS
+          //       loader: 'postcss-loader',
+          //       options: {
+          //         plugins: function () {
+          //           return [
+          //             require('autoprefixer')
+          //           ];
+          //         }
+          //       }
+          //     },
+          //     {
+          //       // Loads a SASS/SCSS file and compiles it to CSS
+          //       loader: 'sass-loader'
+          //     }
+          //   ]
+          // },
             {
                 test: /\.mjs$/,
                 exclude: /node_modules/,
@@ -27,26 +102,26 @@ module.exports = {
                   loader: "babel-loader"
                 }
               },
-              {
-                test: /\.(sa|sc|c)ss$/,
-                use: [
-                  'style-loader' ,
-                  MiniCssExtractPlugin.loader,
-                  { loader: 'css-loader', options: { importLoaders: 1 } },
-                  {
-                    // Loader for webpack to process CSS with PostCSS
-                    loader: 'postcss-loader',
-                    options: {
-                      plugins: function () {
-                        return [
-                          require('autoprefixer')
-                        ];
-                      }
-                    }
-                  },
-                  'sass-loader',
-                ],
-              },
+              // {
+              //   test: /\.(sa|sc|c)ss$/,
+              //   use: [
+              //     'style-loader' ,
+              //     MiniCssExtractPlugin.loader,
+              //     { loader: 'css-loader', options: { importLoaders: 1 } },
+              //     {
+              //       // Loader for webpack to process CSS with PostCSS
+              //       loader: 'postcss-loader',
+              //       options: {
+              //         plugins: function () {
+              //           return [
+              //             require('autoprefixer')
+              //           ];
+              //         }
+              //       }
+              //     },
+              //     'sass-loader',
+              //   ],
+              // },
             //   {
             //     test: /\.s?[ac]ss$/,
             //     use: [
@@ -72,24 +147,26 @@ module.exports = {
             //     test: require.resolve('./src/globals.js'),
             //     use: 'exports-loader?file,parse=helpers.parse'
             // }
+           
+            
         ],
     },
     output: {
         filename: '[name].bundle.js',
         path: path.resolve(__dirname, 'dist')
     },
-    optimization: {
-      splitChunks: {
-        cacheGroups: {
-          styles: {
-            name: 'styles',
-            test: /\.(sa|sc|c)ss$/,
-            chunks: 'all',
-            enforce: true
-          }
-        }
-      }
-    },
+    // optimization: {
+    //   splitChunks: {
+    //     cacheGroups: {
+    //       styles: {
+    //         name: 'styles',
+    //         test: /\.(sa|sc|c)ss$/,
+    //         chunks: 'all',
+    //         enforce: true
+    //       }
+    //     }
+    //   }
+    // },
     // optimization: {
     //     splitChunks: {
     //       chunks: 'async',
@@ -155,6 +232,12 @@ module.exports = {
             }
             }
           ]),
+          new WorkboxPlugin.GenerateSW({
+                   // these options encourage the ServiceWorkers to get in there fast 
+                   // and not allow any straggling "old" SWs to hang around
+                   clientsClaim: true,
+                   skipWaiting: true
+            }),
         new webpack.HotModuleReplacementPlugin(),
     ]
 };
